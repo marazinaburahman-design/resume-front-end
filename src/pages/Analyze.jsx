@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
 import {
   FileText,
+  UploadCloud,
+  X,
   Sparkles,
+  Maximize2,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { api } from '../lib/api'
 
 export default function Analyze() {
+  const [file, setFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
   const [resumeText, setResumeText] = useState('')
   const [jobTitle, setJobTitle] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,13 +21,73 @@ export default function Analyze() {
 
   const navigate = useNavigate()
 
+  // Create PDF preview URL
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl('')
+      return
+    }
+
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+
+    return () => {
+      URL.revokeObjectURL(url)
+    }
+  }, [file])
+
+  // Handle file upload
+  const onDrop = useCallback((files) => {
+    if (!files || !files.length) return
+
+    const selectedFile = files[0]
+
+    if (selectedFile.type !== 'application/pdf') {
+      setError('Please upload a PDF resume.')
+      return
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      setError('PDF must be smaller than 5 MB.')
+      return
+    }
+
+    setFile(selectedFile)
+    setError('')
+  }, [])
+
+  const {
+    getRootProps,
+    getInputProps,
+    isDragActive,
+  } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+    },
+    multiple: false,
+    maxSize: 5 * 1024 * 1024,
+  })
+
+  // Remove uploaded file
+  const removeFile = (e) => {
+    e.stopPropagation()
+    setFile(null)
+    setPreviewUrl('')
+    setError('')
+  }
+
   // Submit resume for AI analysis
   const submit = async () => {
     const trimmedJobTitle = jobTitle.trim()
-    const trimmedResume = resumeText.trim()
 
-    if (!trimmedResume || !trimmedJobTitle) {
-      setError('Add a target role and paste your resume.')
+    if (!trimmedJobTitle) {
+      setError('Enter a target job title.')
+      return
+    }
+
+    if (!file && !resumeText.trim()) {
+      setError('Upload a PDF or paste your resume text.')
       return
     }
 
@@ -29,9 +95,22 @@ export default function Analyze() {
     setError('')
 
     try {
-      const res = await api.post('/analyses', {
-        resumeText: trimmedResume,
-        jobTitle: trimmedJobTitle,
+      const data = new FormData()
+      
+      if (file) {
+        data.append('resume', file)
+      }
+      
+      if (resumeText.trim()) {
+        data.append('resumeText', resumeText.trim())
+      }
+      
+      data.append('jobTitle', trimmedJobTitle)
+
+      const res = await api.post('/analyses', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       })
 
       navigate(`/analysis/${res.data.analysis._id}`)
@@ -49,16 +128,11 @@ export default function Analyze() {
     }
   }
 
-  // Button should only be enabled when:
-  // 1. Resume text exists
-  // 2. Job title contains real text
-  // 3. Request is not currently loading
+  // Can submit if job title + (PDF OR text)
   const canSubmit =
     !loading &&
-    !!resumeText.trim() &&
-    !!jobTitle.trim()
-
-  const charCount = resumeText.length
+    !!jobTitle.trim() &&
+    (!!file || !!resumeText.trim())
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -74,7 +148,7 @@ export default function Analyze() {
         </h1>
 
         <p className="mt-2 text-zinc-500">
-          Paste your resume and tell us which role you're targeting.
+          Upload a PDF or paste your resume text and tell us which role you're targeting.
         </p>
       </div>
 
@@ -106,38 +180,133 @@ export default function Analyze() {
           </p>
         </div>
 
-        {/* Resume Text Input */}
+        {/* PDF Upload */}
         <motion.div
-          className="rounded-2xl border border-white/15 bg-white/[.02] p-5 hover:border-white/30 transition"
+          {...getRootProps()}
+          whileHover={{ scale: 1.002 }}
+          className={`rounded-2xl border border-dashed p-5 transition ${
+            isDragActive
+              ? 'border-lime-300 bg-lime-300/5'
+              : 'border-white/15 bg-white/[.02] hover:border-white/30'
+          }`}
         >
-          <div className="flex items-center justify-between mb-3">
-            <label
-              htmlFor="resume"
-              className="text-sm font-medium flex items-center gap-2"
-            >
-              <FileText size={16} className="text-lime-300" />
-              Your resume
-            </label>
-            <span className="text-xs text-zinc-600">
-              {charCount} characters
-            </span>
-          </div>
+          <input {...getInputProps()} />
+
+          {file ? (
+            <div className="grid gap-5 md:grid-cols-[1fr_300px]">
+
+              {/* PDF Preview */}
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+
+                  <div className="flex min-w-0 items-center gap-2">
+                    <FileText
+                      size={16}
+                      className="shrink-0 text-red-300"
+                    />
+
+                    <span className="truncate text-sm font-medium">
+                      {file.name}
+                    </span>
+                  </div>
+
+                  {previewUrl && (
+                    
+                  <a    href={previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="ml-3 shrink-0 text-zinc-500 hover:text-white"
+                      title="Open PDF in new tab"
+                    >
+                      <Maximize2 size={16} />
+                    </a>
+                  )}
+                </div>
+
+                {previewUrl && (
+                  <iframe
+                    src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                    title="Resume PDF preview"
+                    className="h-[520px] w-full bg-white"
+                  />
+                )}
+              </div>
+
+              {/* File Information */}
+              <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[.02] p-5">
+
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-400/10 text-red-300">
+                  <FileText size={27} />
+                </div>
+
+                <p className="mt-4 break-words text-center font-medium">
+                  {file.name}
+                </p>
+
+                <p className="mt-1 text-center text-xs text-zinc-500">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB · PDF
+                </p>
+
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className="mx-auto mt-5 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-white"
+                >
+                  <X size={14} />
+                  Remove
+                </button>
+
+                <p className="mt-6 text-center text-xs leading-5 text-zinc-600">
+                  Click anywhere in this area to replace the PDF.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Empty Upload State */
+            <div className="py-10 text-center">
+
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-lime-300/10 text-lime-300">
+                <UploadCloud />
+              </div>
+
+              <p className="mt-4 font-medium">
+                {isDragActive
+                  ? 'Drop your resume here'
+                  : 'Drag & drop your resume here'}
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-600">
+                or click to browse · PDF up to 5 MB
+              </p>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Resume Text (Optional Fallback) */}
+        <div className="rounded-2xl border border-white/10 bg-white/[.035] p-5">
+          <label
+            htmlFor="resumeText"
+            className="text-sm font-medium"
+          >
+            Or paste your resume text
+          </label>
+
+          <p className="mt-1 text-xs text-zinc-600">
+            If PDF extraction fails, paste your resume text here as fallback
+          </p>
 
           <textarea
-            id="resume"
+            id="resumeText"
             value={resumeText}
             onChange={(e) => {
               setResumeText(e.target.value)
               if (error) setError('')
             }}
-            placeholder="Paste your resume here..."
-            className="w-full h-80 rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none placeholder:text-zinc-700 focus:border-lime-300/60 resize-none"
+            placeholder="Paste your resume text here (optional)"
+            className="mt-3 w-full h-32 rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none placeholder:text-zinc-700 focus:border-lime-300/60 resize-none"
           />
-
-          <p className="mt-2 text-xs text-zinc-600">
-            Copy and paste your entire resume or CV text above.
-          </p>
-        </motion.div>
+        </div>
 
         {/* Error */}
         {error && (
@@ -173,21 +342,15 @@ export default function Analyze() {
         </button>
 
         {/* Status */}
-        {!resumeText.trim() && !jobTitle.trim() && (
+        {!file && !resumeText.trim() && !jobTitle.trim() && (
           <p className="text-center text-xs text-zinc-600">
-            Paste your resume and enter the target job title to continue.
+            Upload a PDF or paste your resume and enter the target job title.
           </p>
         )}
 
-        {resumeText.trim() && !jobTitle.trim() && (
+        {!jobTitle.trim() && (file || resumeText.trim()) && (
           <p className="text-center text-xs text-zinc-600">
-            Resume added. Enter a target job title to continue.
-          </p>
-        )}
-
-        {!resumeText.trim() && jobTitle.trim() && (
-          <p className="text-center text-xs text-zinc-600">
-            Target role added. Paste your resume to continue.
+            Resume ready. Enter a target job title to continue.
           </p>
         )}
       </div>
