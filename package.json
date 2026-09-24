@@ -3,21 +3,26 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {"dev":"vite","build":"vite build","preview":"vite preview"},
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
-    "@vitejs/plugin-react":"latest",
-    "axios":"^1.12.2",
-    "framer-motion":"^12.23.24",
-    "lucide-react":"^0.468.0",
-    "react":"latest",
-    "react-dom":"latest",
-    "react-dropzone":"^14.3.8",
-    "react-router-dom":"^7.9.4",
-    "recharts":"^3.2.1",
-    "vite":"latest"
+    "@vitejs/plugin-react": "latest",
+    "axios": "^1.12.2",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.468.0",
+    "pdfjs-dist": "^6.3.289",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-dropzone": "^14.3.8",
+    "react-router-dom": "^7.9.4",
+    "recharts": "^3.2.1",
+    "vite": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/vite":"latest",
-    "tailwindcss":"latest"
+    "@tailwindcss/vite": "latest",
+    "tailwindcss": "latest"
   }
 }
