@@ -1,4 +1,4 @@
-import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import {
   BarChart3,
@@ -29,18 +29,16 @@ const nav = [
   },
 ]
 
-export default function Layout({ children, user }) {
-  const navigate = useNavigate()
-
+export default function Layout({ children, user, onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
 
-  const logout = async () => {
-    try {
-      await api.post('/auth/logout')
-    } finally {
-      navigate('/login')
-    }
+  const logout = () => {
+    // Clear user and go to login immediately
+    onLogout()
+
+    // Logout from backend without waiting
+    api.post('/auth/logout').catch(() => {})
   }
 
   // Close profile menu when clicking outside
@@ -64,7 +62,9 @@ export default function Layout({ children, user }) {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100">
 
-      {/* DESKTOP SIDEBAR */}
+      {/* =========================
+          DESKTOP SIDEBAR
+      ========================== */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-[#0d0d10] px-5 py-6 lg:flex lg:flex-col">
 
         {/* CLICKABLE LOGO */}
@@ -118,7 +118,7 @@ export default function Layout({ children, user }) {
           New analysis
         </NavLink>
 
-        {/* DESKTOP USER AREA */}
+        {/* USER AREA */}
         <div className="mt-auto border-t border-white/10 pt-4">
 
           <div className="flex items-center gap-3 px-2 py-3">
@@ -137,7 +137,9 @@ export default function Layout({ children, user }) {
             </div>
           </div>
 
+          {/* DESKTOP LOGOUT */}
           <button
+            type="button"
             onClick={logout}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-500 transition hover:bg-white/5 hover:text-white"
           >
@@ -147,7 +149,9 @@ export default function Layout({ children, user }) {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* =========================
+          MAIN CONTENT
+      ========================== */}
       <main className="min-h-screen lg:pl-64">
 
         {/* HEADER */}
@@ -181,7 +185,7 @@ export default function Layout({ children, user }) {
               className="relative flex items-center gap-2 text-sm text-zinc-400"
             >
 
-              {/* Desktop name */}
+              {/* Desktop user name */}
               <span className="hidden sm:block">
                 {user?.name || 'Welcome back'}
               </span>
@@ -201,7 +205,7 @@ export default function Layout({ children, user }) {
               {profileOpen && (
                 <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-white/10 bg-[#111113] shadow-2xl">
 
-                  {/* User information */}
+                  {/* USER INFORMATION */}
                   <div className="border-b border-white/10 px-4 py-3">
                     <p className="truncate text-sm font-medium text-white">
                       {user?.name || 'User'}
@@ -212,7 +216,7 @@ export default function Layout({ children, user }) {
                     </p>
                   </div>
 
-                  {/* Sign out */}
+                  {/* SIGN OUT */}
                   <button
                     type="button"
                     onClick={logout}
