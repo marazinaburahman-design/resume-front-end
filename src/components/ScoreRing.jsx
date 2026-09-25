@@ -1,4 +1,40 @@
 export default function ScoreRing({ score = 0, size = 150 }) {
-  const radius = 48, circumference = 2 * Math.PI * radius, offset = circumference - (score / 100) * circumference
-  return <div className="relative" style={{width:size,height:size}}><svg viewBox="0 0 120 120" className="h-full w-full -rotate-90"><circle cx="60" cy="60" r={radius} fill="none" stroke="currentColor" strokeWidth="8" className="text-zinc-800"/><circle cx="60" cy="60" r={radius} fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" className="text-lime-300 transition-all duration-700" strokeDasharray={circumference} strokeDashoffset={offset}/></svg><div className="absolute inset-0 grid place-items-center"><div className="text-center"><div className="text-3xl font-bold tracking-tight">{score}</div><div className="text-[10px] uppercase tracking-[.18em] text-zinc-500">score</div></div></div></div>
+  const radius = 48,
+    circumference = 2 * Math.PI * radius,
+    offset = circumference - (score / 100) * circumference;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="8"
+          className="text-zinc-800"
+        />
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="8"
+          strokeLinecap="round"
+          className="text-lime-300 transition-all duration-700"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="text-center">
+          <div className="text-3xl font-bold tracking-tight">{score}</div>
+          <div className="text-[10px] uppercase tracking-[.18em] text-zinc-500">
+            score
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
