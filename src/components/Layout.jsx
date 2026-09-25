@@ -1,4 +1,5 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 import {
   BarChart3,
   FileSearch,
@@ -31,6 +32,9 @@ const nav = [
 export default function Layout({ children, user }) {
   const navigate = useNavigate()
 
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef(null)
+
   const logout = async () => {
     try {
       await api.post('/auth/logout')
@@ -39,12 +43,28 @@ export default function Layout({ children, user }) {
     }
   }
 
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target)
+      ) {
+        setProfileOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100">
 
-      {/* =========================
-          DESKTOP SIDEBAR
-      ========================== */}
+      {/* DESKTOP SIDEBAR */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-[#0d0d10] px-5 py-6 lg:flex lg:flex-col">
 
         {/* CLICKABLE LOGO */}
@@ -98,7 +118,7 @@ export default function Layout({ children, user }) {
           New analysis
         </NavLink>
 
-        {/* USER AREA */}
+        {/* DESKTOP USER AREA */}
         <div className="mt-auto border-t border-white/10 pt-4">
 
           <div className="flex items-center gap-3 px-2 py-3">
@@ -127,9 +147,7 @@ export default function Layout({ children, user }) {
         </div>
       </aside>
 
-      {/* =========================
-          MAIN CONTENT
-      ========================== */}
+      {/* MAIN CONTENT */}
       <main className="min-h-screen lg:pl-64">
 
         {/* HEADER */}
@@ -157,16 +175,55 @@ export default function Layout({ children, user }) {
               AI-powered resume feedback
             </p>
 
-            {/* USER */}
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
+            {/* USER MENU */}
+            <div
+              ref={profileRef}
+              className="relative flex items-center gap-2 text-sm text-zinc-400"
+            >
 
+              {/* Desktop name */}
               <span className="hidden sm:block">
                 {user?.name || 'Welcome back'}
               </span>
 
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-zinc-800">
+              {/* Profile button */}
+              <button
+                type="button"
+                onClick={() => setProfileOpen((open) => !open)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-zinc-800 transition hover:bg-zinc-700"
+                aria-label="Open profile menu"
+                aria-expanded={profileOpen}
+              >
                 <UserRound size={15} />
-              </div>
+              </button>
+
+              {/* Profile dropdown */}
+              {profileOpen && (
+                <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-white/10 bg-[#111113] shadow-2xl">
+
+                  {/* User information */}
+                  <div className="border-b border-white/10 px-4 py-3">
+                    <p className="truncate text-sm font-medium text-white">
+                      {user?.name || 'User'}
+                    </p>
+
+                    <p className="mt-1 truncate text-xs text-zinc-500">
+                      {user?.email || 'Account'}
+                    </p>
+                  </div>
+
+                  {/* Sign out */}
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                  >
+                    <LogOut size={16} />
+                    Sign out
+                  </button>
+
+                </div>
+              )}
 
             </div>
           </div>
